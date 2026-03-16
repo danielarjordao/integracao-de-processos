@@ -2,110 +2,89 @@
 
 ## Docker
 
-Docker é uma plataforma de contentores que permite criar, distribuir e executar aplicações de forma consistente em qualquer ambiente. Ele isola a aplicação e suas dependências em um ambiente leve e portátil, garantindo que ela funcione da mesma maneira em desenvolvimento, teste e produção.
+O Docker é uma plataforma de contentores que isola a aplicação e as suas dependências num ambiente leve e portátil. Garante que o código funcione da mesma forma em desenvolvimento, teste e produção, resolvendo o problema do "funciona na minha máquina".
 
-### Conceitos fundamentais do Docker
+### Conceitos Fundamentais
 
-#### Imagem Docker
+* **Imagem Docker:** Pacote imutável, leve e executável com tudo o que é necessário para a aplicação (código, runtime, bibliotecas). Criada a partir de um **Dockerfile**.
+* **Contentor Docker:** Instância em execução de uma imagem. Partilha o kernel do host, mas é isolado. É **efémero** (pode ser destruído e recriado rapidamente).
+* **Layers (Camadas):** Instruções do Dockerfile criam camadas. São reutilizáveis e armazenadas em cache, otimizando o build.
+* **Registry:** Repositório de imagens. Exemplos: **Docker Hub** (público) e **GHCR** (GitHub Container Registry).
 
-Uma imagem Docker é um pacote leve, independente e executável que inclui tudo o que é necessário para executar uma aplicação: código, runtime, bibliotecas e configurações. As imagens são criadas a partir de um arquivo chamado Dockerfile, que define as instruções para construir a imagem.
+## Virtualização vs. Contentores
 
-#### Contentor Docker
+A virtualização cria "ilusões" de hardware físico, permitindo múltiplos ambientes num único recurso.
 
-Um contentor Docker é uma instância em execução de uma imagem Docker. Ele é isolado do sistema host e de outros contentores, mas compartilha o kernel do host. Os contentores são efêmeros, o que significa que podem ser criados, parados e destruídos rapidamente.
-
-#### Layers (Camadas)
-
-As imagens Docker são construídas em camadas, onde cada camada representa uma modificação ou adição à imagem base. Isso permite que as imagens sejam reutilizadas e otimizadas, já que as camadas comuns entre diferentes imagens podem ser compartilhadas.
-
-#### Dockerfile
-
-Um Dockerfile é um arquivo de texto que contém uma série de instruções para construir uma imagem Docker. Ele define a base da imagem, as dependências, os arquivos a serem copiados e os comandos a serem executados quando o contentor for iniciado.
-
-**Keywords comuns em um Dockerfile:**
-
-* `FROM`: Especifica a imagem base para a construção da nova imagem.
-* `RUN`: Executa comandos durante a construção da imagem.
-* `COPY`: Copia arquivos do sistema host para a imagem.
-* `CMD`: Define o comando padrão a ser executado quando o contentor for iniciado.
-* `EXPOSE`: Indica quais portas o contentor irá escutar em tempo de execução.
-* `WORKDIR`: Define o diretório de trabalho para os comandos subsequentes.
-
-#### Registry
-
-Um registry é um repositório onde as imagens Docker são armazenadas e compartilhadas. O Docker Hub é o registry público mais conhecido, mas também existem registries privados para uso corporativo.
-
-## Virtualização
-
-A virtualização é uma tecnologia que permite criar múltiplos ambientes virtuais em um único hardware físico. Cada ambiente virtual, ou máquina virtual, pode executar seu próprio sistema operacional e aplicações, proporcionando isolamento e flexibilidade. A virtualização é amplamente utilizada para otimizar recursos, melhorar a segurança e facilitar a gestão de infraestruturas de TI.
-
-## Comparação entre Docker e Virtualização
-
-| Aspecto | Docker | Virtualização |
+| Aspecto | Docker (Contentores) | Virtualização (VMs) |
 | --- | --- | --- |
-| Isolamento | Compartilha o kernel do host, mas isola a aplicação e suas dependências | Cada máquina virtual tem seu próprio kernel e sistema operacional |
-| Performance | Mais leve e rápido, pois não precisa de um sistema operacional completo | Mais pesado e lento, devido à necessidade de um sistema operacional completo |
-| Portabilidade | Altamente portátil, pode ser executado em qualquer ambiente | Menos portátil, depende do hypervisor e do sistema operacional |
-| Uso de recursos | Utiliza menos recursos, pois compartilha o kernel do host | Utiliza mais recursos, pois cada máquina virtual precisa de seu próprio sistema operacional |
-| Casos de uso | Ideal para desenvolvimento, teste e implantação de aplicações | Ideal para execução de múltiplos sistemas operacionais e isolamento completo |
+| **Isolamento** | Partilha o kernel do host. Isola processos. | Cada VM tem o seu próprio Kernel e SO. |
+| **Performance** | Leve e arranque em segundos. | Pesado e arranque em minutos. |
+| **Recursos** | Utiliza menos recursos (MBs). | Utiliza mais recursos (GBs). |
+| **Analogia** | Apartamento num edifício comum. | Casa independente com fundações próprias. |
 
-## Prática: Fluxo de Trabalho com Docker
+## Prática: Fluxo de Trabalho e Dockerfile
 
 ### 1. Criação do Roteiro (Dockerfile)
 
-O arquivo funciona como um roteiro com instruções para a construção da imagem. Exemplo de ambiente base em Node.js:
+O ficheiro define o ambiente como código. Cada instrução gera uma nova layer.
+
+**Instruções (Keywords):**
+
+* `FROM`: Define a imagem base (ex: `node:20-alpine`).
+* `WORKDIR`: Define o diretório de trabalho dentro do contentor.
+* `COPY`: Copia ficheiros do host para o contentor.
+* `RUN`: Executa comandos durante o build (ex: `npm install`).
+* `EXPOSE`: Indica as portas que o contentor escuta (documentação).
+* `CMD`: Define o comando padrão quando o contentor inicia.
+
+**Exemplo de Multi-Stage Build (Angular):**
+Esta técnica é essencial para reduzir o tamanho da imagem final, separando o ambiente de compilação do de execução.
 
 ```dockerfile
-# Specify the base image
-FROM node:20-alpine
-
-# Set the working directory inside the container
+# Stage 1: Build
+FROM node:20-alpine AS build
 WORKDIR /usr/src/app
-
-# Copy dependency files from host to image
+COPY package*.json ./
+RUN npm ci
 COPY . .
+RUN npm run build:prod
 
-# Execute commands during the build process
-RUN npm install
-
-# Define the default command to run when the container starts
-CMD ["sh"]
+# Stage 2: Serve
+FROM nginx:alpine
+# Copia apenas o artefacto (pasta dist) do estágio de build
+COPY --from=build /usr/src/app/dist/seu-projeto /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
 
 ```
 
 ### 2. Otimização (.dockerignore)
 
-Arquivo criado na raiz do projeto com o objetivo de impedir que o Docker copie arquivos pesados e incompatíveis, tornando a construção limpa e rápida.
+Impede que o Docker copie ficheiros desnecessários para o contexto de build, mantendo a imagem leve e segura.
 
 ```text
-# Ignore local dependencies
 node_modules/
-
-# Ignore Docker configuration files
+dist/
+.git/
+.env
 Dockerfile
 .dockerignore
 
 ```
 
-### 3. Construção da Imagem (Build)
+### 3. Comandos Essenciais (Build e Run)
 
-Comando para transformar o `Dockerfile` em uma imagem (o "molde"). O ponto (`.`) no final indica o diretório atual.
+* **Construção:** `docker build -t meu-projeto:v1 .` (O `.` indica o diretório atual).
+* **Execução Interativa:** `docker run -it --name meu-contentor meu-projeto:v1`
+* **Mapeamento de Portas:** `docker run -p 8080:80 meu-projeto:v1` (Acede em `localhost:8080`).
 
-```bash
-# Build the image and tag it
-docker build -t my-wardrobe:v1 .
+### 4. Gestão e Publicação
 
-```
+* **Inspecionar:** `docker ps` (ativos), `docker logs [id]` (ver output), `docker inspect [id]`.
+* **Limpar:** `docker stop [id]`, `docker rm [id]` (apaga contentor), `docker rmi [imagem]` (apaga imagem).
 
-### 4. Execução do Contentor (Run)
+* **Publicar:**
 
-Comando para iniciar o contentor a partir da imagem e acessar o seu terminal de forma interativa.
-
-```bash
-# Run container interactively and assign a specific name
-docker run -it --name my-wardrobe my-wardrobe:v1
-
-```
-
-* `-it`: Ativa o modo interativo e conecta ao terminal do contentor.
-* `--name`: Atribui um nome fixo e legível ao contentor.
+1. `docker login`
+2. `docker tag meu-projeto:v1 utilizador/meu-projeto:v1`
+3. `docker push utilizador/meu-projeto:v1`
