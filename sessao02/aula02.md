@@ -1,78 +1,71 @@
 # Aula 2: Do Código ao Artefacto - O Ciclo de Vida do Software Angular
 
-## O Ciclo de Vida: Do Código ao Artefacto
+## 1. O Ciclo de Vida: Do Código ao Artefacto
 
-O código TypeScript/HTML/SCSS que escreves não é compreendido diretamente pelo browser. O Angular precisa de um processo de transformação.
+O código escrito (TypeScript, HTML, SCSS) não é o que o browser executa. O processo de transformação é dividido em três fases:
 
-* **Fase 1: Desenvolvimento:** Escreves o código. O Angular CLI usa o `ng serve` para criar um servidor local com *hot reload* (atualiza automaticamente ao guardar).
-* **Fase 2: Build:** O comando `ng build` compila, otimiza e empacota o código, gerando ficheiros estáticos (HTML, JS, CSS).
-* **Fase 3: Distribuição (Deploy):** O artefacto gerado (a pasta `dist/`) é copiado para um servidor web (ex: Nginx, Vercel, Netlify) que o entrega aos utilizadores.
+* **Fase 1: Desenvolvimento:** Programação diária. O Angular CLI usa o `ng serve` para criar um servidor local com *hot reload* (atualização instantânea ao guardar).
+* **Fase 2: Build:** O comando `ng build` processa o código para gerar ficheiros estáticos otimizados na pasta `dist/`.
+* **Fase 3: Distribuição (Deploy):** O artefacto (pasta `dist/`) é movido para um servidor HTTP (Nginx, Vercel, Netlify). **A aplicação em produção não depende de Node.js**, apenas do servidor web.
 
-## O Motor do Angular: `ng serve` vs `ng build`
+## 2. O Motor do Build: `ng serve` vs `ng build`
 
-Para entender a diferença entre estar a programar e enviar para produção, é crucial comparar estes dois processos:
-
-| Característica | `ng serve` (Desenvolvimento) | `ng build --configuration production` (Produção) |
+| Característica | `ng serve` (Development) | `ng build --configuration production` |
 | --- | --- | --- |
-| **Objetivo** | Programação diária e testes locais. | Criar o pacote final otimizado. |
-| **Compilação** | JIT (*Just In Time* - em tempo real). | AOT (*Ahead-of-Time* - pré-compilado). |
-| **Source Maps** | Sim (facilita o debug no browser). | Não (por segurança e tamanho). |
-| **Otimização** | Nenhuma. Bundle maior e mais lento. | Minificação e *Tree-shaking* ativos. Bundle leve. |
+| **Objetivo** | Testes e desenvolvimento local. | Pacote final para o utilizador. |
+| **Compilação** | **JIT** (*Just In Time*). | **AOT** (*Ahead-of-Time*) - pré-compilado. |
+| **Source Maps** | Ativos (facilita o debug). | Desativados (reduz o tamanho). |
+| **Otimização** | Nenhuma. | Minificação, *Tree-shaking* e Otimização agressiva. |
 
-**Os 4 passos automáticos do `ng build`:**
+### Os 4 passos automáticos do `ng build`
 
-1. **Transpilação:** O compilador (`tsc`) traduz o TypeScript para JavaScript compreensível pelo browser.
-2. **Bundling:** O Webpack/esbuild junta módulos espalhados em poucos ficheiros principais (`main.js`, `polyfills.js`, `styles.css`).
-3. **Minificação:** Remove espaços, comentários e encurta nomes de variáveis para reduzir o peso dos ficheiros.
-4. **Tree-Shaking:** Analisa o código e elimina funções/bibliotecas que foram importadas mas nunca utilizadas (código morto)
+1. **Transpilação:** O compilador (`tsc`) converte TypeScript em JavaScript compatível com os browsers.
+2. **Bundling:** O Webpack ou esbuild agrupa múltiplos ficheiros em poucos pacotes (`main.js`, `polyfills.js`, `styles.css`).
+3. **Minificação:** Elimina espaços, comentários e encurta nomes de variáveis.
+4. **Tree-Shaking:** Elimina código morto (funções ou bibliotecas importadas mas não utilizadas).
 
-## O Artefacto Final: A pasta `dist/`
+## 3. O Artefacto Final: A pasta `dist/`
 
-Quando o `ng build` termina, o resultado vive na pasta `dist/`. **Este é o teu produto final.**
+É um pacote autónomo e pronto para distribuição. Contém:
 
-* **Independente:** Não precisa de Node.js para correr em produção. É apenas HTML, CSS e JS estático.
-* **Conteúdo principal:**
-* `index.html`: A única página da aplicação (Single Page Application).
-* `main.js`: O teu código compilado.
-* `polyfills.js`: Código extra para garantir que funciona em browsers mais antigos.
-* `styles.css`: Os estilos globais.
+* `index.html`: O ponto de entrada da aplicação.
+* `main.js`: O código da aplicação compilado.
+* `polyfills.js`: Garante compatibilidade com browsers mais antigos.
+* `styles.css`: Estilos globais da aplicação.
+* **Assets:** Imagens, fontes e ficheiros estáticos copiados de `src/assets`.
+* **Lazy Chunks:** Ficheiros de módulos carregados apenas quando o utilizador acede a essa rota (*on-demand*).
 
-## Orquestração com `npm scripts`
+## 4. Orquestração com `npm scripts`
 
-O ficheiro `package.json` funciona como o painel de controlo do projeto. A secção `"scripts"` guarda atalhos (comandos shell) que executas via `npm run [nome-do-script]`.
+O ficheiro `package.json` gere atalhos de comandos via `npm run [script]`.
 
-**Scripts Essenciais:**
+* **Scripts Essenciais:**
+* `"start": "ng serve"` (Desenvolvimento)
+* `"build:prod": "ng build --configuration production"` (Produção)
+* `"lint": "ng lint"` (Validação de regras de código/ESLint)
+* `"test": "ng test"` (Testes unitários)
+* `"ci": "npm run lint && npm run build:prod"` (Pipeline local completo)
 
-* `"start": "ng serve"` ➔ Arranca o servidor de desenvolvimento.
-* `"build": "ng build"` ➔ Faz o build normal.
-* `"build:prod": "ng build --configuration production"` ➔ Faz o build otimizado para produção.
-* `"lint": "ng lint"` ➔ Analisa o código em busca de erros de formatação ou más práticas (ESLint).
-* `"test": "ng test"` ➔ Corre os testes unitários (Karma/Jasmine).
-* `"ci": "npm run lint && npm run build:prod"` ➔ Executa tarefas em cadeia.
+* **Regras de Encadeamento:**
+* `&&`: Sequencial. O segundo comando só corre se o primeiro tiver **sucesso**.
+* `||`: Alternativa. O segundo comando corre se o primeiro **falhar**.
+* `pre` / `post`: Prefixos automáticos (ex: `prebuild` corre sempre antes do `build`).
 
-**Regras de encadeamento:**
+## 5. Variáveis de Ambiente e Contextos
 
-* `&&` (Sequencial): O segundo comando só corre se o primeiro tiver sucesso. Ex: no script `"ci"`, se o lint falhar, o build de produção é cancelado.
-* `pre` / `post`: Prefixos mágicos do npm. Se criares um script chamado `"prebuild"`, ele vai correr automaticamente *sempre* antes de executares `"build"`.
+Geridas na pasta `src/environments/` para separar configurações de desenvolvimento e produção.
 
-## Variáveis de Ambiente e Contextos
+* `environment.ts`: Desenvolvimento local.
+* `environment.prod.ts`: Produção (API URLs reais, chaves de produção).
+* **Mecanismo de Troca:** O programador importa sempre o `environment.ts`. O Angular CLI substitui pelo ficheiro correto durante o build conforme a flag `--configuration`.
+* **Segurança:** Dados sensíveis (segredos/tokens) **nunca** devem ser commitados no Git. Devem ser carregados via ficheiros `.env` ou variáveis de ambiente no servidor de CI/CD.
 
-O comportamento da aplicação (ex: URLs de APIs) muda consoante estejas a programar ou em produção. O Angular usa a pasta `src/environments/`:
+## 6. O Conceito de Pipeline e Versionamento
 
-* `environment.ts`: Usado por defeito (para desenvolvimento local).
-* `environment.prod.ts`: Usado quando fazes o build com a flag `--configuration production`. O Angular CLI substitui o ficheiro automaticamente.
+* **Pipeline:** Sequência automatizada de tarefas (Ex: Lint ➔ Testes ➔ Build). Se um passo falhar, o pipeline para, impedindo que código com erros chegue ao utilizador.
+* **Versionamento Automático (SemVer):**
+* `npm version patch`: 1.0.0 ➔ 1.0.1 (Bugs).
+* `npm version minor`: 1.0.0 ➔ 1.1.0 (Novas funções).
+* `npm version major`: 1.0.0 ➔ 2.0.0 (Mudanças que quebram a compatibilidade).
 
-**Segurança:** Credenciais sensíveis (tokens, passwords) **nunca** vão para o `environment.ts` nem para o repositório Git. Devem ficar em ficheiros `.env` locais, geridos depois de forma segura pelo servidor (CI/CD).
-
-## Pipeline e Versionamento Automático
-
-Um **Pipeline** é uma linha de montagem automática. Garante que ninguém envia código estragado para produção.
-
-* *Fluxo lógico:* Lint ➔ Testes ➔ Build ➔ Deploy. Se um passo falha, o processo para imediatamente.
-
-**Versionamento (SemVer - MAJOR.MINOR.PATCH):**
-
-* Em vez de mudares os números da versão à mão, usas o npm.
-* `npm version patch` (ex: 1.0.0 ➔ 1.0.1): Cria a tag no Git e atualiza o `package.json` para correção de bugs.
-* `npm version minor` (ex: 1.0.0 ➔ 1.1.0): Para novas funcionalidades.
-* Ferramentas como o `standard-version` leem os teus *Conventional Commits* (`feat:`, `fix:`) e geram o ficheiro `CHANGELOG.md` sozinhos.
+* **Changelog:** O uso de *Conventional Commits* permite gerar automaticamente o ficheiro `CHANGELOG.md`.
