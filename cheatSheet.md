@@ -41,7 +41,6 @@ FROM nginx:alpine
 # Copy artifact from the build stage
 COPY --from=build /app/dist/projeto /usr/share/nginx/html
 EXPOSE 80
-
 ```
 
 ## 4. Docker Compose (Orquestração Local)
@@ -65,3 +64,27 @@ EXPOSE 80
 | **Autenticação** | `const { user } = await supabase.auth.getUser();` |
 | **Storage (Upload)** | `supabase.storage.from('bucket').upload(path, file);` |
 | **Regra de Segurança** | **Sempre ativar o RLS** e criar políticas (ex: `auth.uid() = user_id`). |
+
+## 6. GitHub Actions (Automação CI/CD)
+
+| Conceito / Ação | Comando / YAML | Descrição |
+| --- | --- | --- |
+| **Workflow** | `.github/workflows/*.yml` | Ficheiro YAML que define todo o processo automatizado. |
+| **Triggers (Gatilhos)** | `on: pull_request` / `push` | O evento do Git que faz o workflow iniciar. |
+| **Trigger Manual** | `on: workflow_dispatch:` | Permite executar o workflow manualmente no GitHub. |
+| **Runner** | `runs-on: ubuntu-latest` | O servidor (máquina virtual) onde o job é executado. |
+| **Aceder a Secrets** | `${{ secrets.NOME_DO_SECRET }}` | Injeta variáveis cifradas no ambiente (nunca usar no código fonte). |
+| **Dependência** | `needs: [job_anterior]` | Obriga um Job (ex: CD) a esperar que outro (ex: CI) passe primeiro. |
+
+## 7. Pipeline CI/CD Angular (Passo a Passo)
+
+| Passo (Step) | Action / Comando | Objetivo |
+| --- | --- | --- |
+| **1. Clonar Código** | `uses: actions/checkout@v4` | Transfere o código do repositório para o runner. |
+| **2. Setup Node.js** | `uses: actions/setup-node@v4` | Configura a versão do ambiente (ex: `node-version: '20'`). |
+| **3. Cache npm** | `uses: actions/cache@v4` | Guarda a pasta `~/.npm` para acelerar *builds* futuros. |
+| **4. Instalação Limpa** | `run: npm ci` | Instala dependências de forma exata via `package-lock.json`. |
+| **5. Quality Gates (CI)** | `run: npm run lint` e `build` | Verifica formatação e compilação. Falhas bloqueiam o PR. |
+| **6. Build Produção (CD)** | `run: npm run build --prod` | Compila o artefacto final otimizado na pasta `dist/`. |
+| **7. Deploy (Hosting)** | Ex: `uses: peaceiris/actions-gh-pages` | Envia o artefacto estático para o GitHub Pages, Vercel ou Netlify. |
+| **8. Imagem (GHCR)** | `docker push ghcr.io/org/repo` | Opcional: Publica a imagem Docker com o token genérico do GitHub. |
