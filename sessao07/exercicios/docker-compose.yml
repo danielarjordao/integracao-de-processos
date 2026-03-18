@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: angular-app
+    ports:
+      - "${APP_PORT}:80"
+    depends_on:
+      - api
+    environment:
+      API_URL: ${API_URL}
+
+  api:
+    build:
+      context: ./mock-api
+      dockerfile: Dockerfile
+    container_name: api-mock
+    environment:
+      JSON_SERVER_WATCH: true
+
+    ports:
+      - "${API_PORT}:3000"
+    volumes:
+      - ./mock-api:/app
